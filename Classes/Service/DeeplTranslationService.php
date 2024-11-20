@@ -400,7 +400,7 @@ class DeeplTranslationService implements SingletonInterface
 
         [$sourceLanguageForGlossary] = explode('-', $sourceLanguage);
         [$targetLanguageForGlossary] = explode('-', $targetLanguage);
-        $glossary = $this->configuration->getGlossaryForLanguagePair($sourceLanguageForGlossary, $targetLanguageForGlossary);
+        $glossary = $this->configuration->getGlossaryForLanguagePair($sourceLanguageForGlossary, $targetLanguageForGlossary, $this->translator);
         if ($glossary) {
             $options[TranslateTextOptions::GLOSSARY] = $glossary;
         }

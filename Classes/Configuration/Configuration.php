@@ -28,6 +28,7 @@ namespace Dmitryd\DdDeepl\Configuration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\BackendConfigurationManager;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
+use DeepL\Translator;
 
 /**
  * This class contains configuration methods.
@@ -98,11 +99,20 @@ class Configuration
      * @param string $targetLangage
      * @return ?string
      */
-    public function getGlossaryForLanguagePair(string $sourceLangage, string $targetLangage): ?string
+    public function getGlossaryForLanguagePair(string $sourceLangage, string $targetLangage, ?Translator $translator): ?string
     {
         $key = $sourceLangage . '-' . $targetLangage;
+        $glossary = $this->glossaries[$key];
+        if (!$glossary && $translator) {
+            $glossaries = $translator->listGlossaries();
+            foreach ($glossaries as $g) {
+                if ($g->sourceLang === $sourceLangage && $g->targetLang === $targetLangage) {
+                    $glossary = $g->glossaryId;
+                }
+            }
+        }
 
-        return $this->glossaries[$key] ?? null;
+        return $glossary ?? null;
     }
 
     /**
