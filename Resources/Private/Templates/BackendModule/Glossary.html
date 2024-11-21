@@ -37,9 +37,17 @@
 										data-title="{f:translate(key: 'module.glossary.delete.modal.title')}"
 										data-bs-content="{f:translate(key: 'module.glossary.delete.modal.message')}"
 										data-button-close-text="{f:translate(key: 'LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:cancel')}"
-										title="module.glossary.delete.modal.title"
+										title="{f:translate(key: 'module.glossary.delete.modal.title')}"
 										href="{f:be.uri(parameters: {action: 'deleteGlossary', glossaryId: glossary.glossaryId, id: id}, route: 'site_DdDeeplDdDeepl')}"
 								><core:icon identifier="actions-edit-delete" /></a>
+								<a class="btn btn-default t3js-modal-trigger"
+										data-severity="warning"
+										data-title="{f:translate(key: 'module.glossary.replace.modal.title')}"
+										data-bs-content="{f:translate(key: 'module.glossary.replace.modal.message')}"
+										data-button-close-text="{f:translate(key: 'LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:cancel')}"
+										title="{f:translate(key: 'module.glossary.replace.modal.title')}"
+										href="{f:be.uri(parameters: {action: 'replaceGlossary', glossaryId: glossary.glossaryId, id: id}, route: 'site_DdDeeplDdDeepl')}"
+								><core:icon identifier="actions-replace" /></a>
 							</div>
 						</td>
 					</tr>

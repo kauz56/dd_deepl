@@ -107,6 +107,15 @@
 			<trans-unit id="module.glossary.delete.done">
 				<source>Glossary "%s" with id=%s was deleted.</source>
 			</trans-unit>
+			<trans-unit id="module.glossary.replace.modal.title">
+				<source>Replace a glossary</source>
+			</trans-unit>
+			<trans-unit id="module.glossary.replace.modal.message">
+				<source>Are you sure you want to replace this glossary? This will delete the selected glossary first, then let you upload a new one in it's place. The glossary will receive a new ID in the process.</source>
+			</trans-unit>
+			<trans-unit id="module.glossary.replace.done">
+				<source>Glossary "%s" with id=%s was replaced.</source>
+			</trans-unit>
 			<trans-unit id="module.select_a_page">
 				<source>Please, select a page in the page tree on the left first.</source>
 			</trans-unit>

@@ -148,6 +148,36 @@ class BackendModuleController extends ActionController
     }
 
     /**
+     * Replaces the glossary.
+     *
+     * @param string $glossaryId
+     * @throws \DeepL\DeepLException
+     * @throws \TYPO3\CMS\Core\Exception
+     * @return ResponseInterface
+     */
+    public function replaceGlossaryAction(string $glossaryId): ResponseInterface
+    {
+        $service = GeneralUtility::makeInstance(DeeplTranslationService::class);
+        $info = $service->getGlossary($glossaryId);
+        try {
+            $service->deleteGlossary($glossaryId);
+        } catch (DeepLException) {
+            // Ignore
+        }
+        return $this->redirect(
+            'uploadForm',
+            null,
+            null,
+            [
+                'name' => $info->name,
+                'sourceLanguage' => $info->sourceLang,
+                'targetLanguage' => $info->targetLang,
+            ],
+            $this->pageUid
+        );
+    }
+
+    /**
      * Manages glossaries.
      *
      * @param string $glossaryId

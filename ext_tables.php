@@ -5,7 +5,7 @@
     'site',
     'dd_deepl',
     '',
-    [\Dmitryd\DdDeepl\Controller\BackendModuleController::class => 'overview,glossary,noPageId,viewGlossary,downloadGlossary,deleteGlossary'],
+    [\Dmitryd\DdDeepl\Controller\BackendModuleController::class => 'overview,glossary,noPageId,viewGlossary,downloadGlossary,deleteGlossary,replaceGlossary'],
     [
         'access' => 'user,group',
         'icon' => 'EXT:dd_deepl/Resources/Public/Images/DeepL.svg',

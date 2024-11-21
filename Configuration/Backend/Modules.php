@@ -20,6 +20,7 @@ if (\TYPO3\CMS\Core\Core\Environment::isComposerMode()) {
                     'viewGlossary',
                     'downloadGlossary',
                     'deleteGlossary',
+                    'replaceGlossary',
                     'uploadForm',
                     'upload',
                 ],
