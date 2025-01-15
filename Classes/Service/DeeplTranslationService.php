@@ -407,7 +407,7 @@ class DeeplTranslationService implements SingletonInterface
 
         return empty($text) ? '' : $this->translator->translateText(
             $text,
-            ($this->autoDetectSourceLang && !$sourceLanguage) ? null : $sourceLanguage,
+            null,
             $targetLanguage,
             $options
         );
