@@ -2,6 +2,7 @@ module.tx_dddeepl {
   settings {
     # Plain text or stdWrap
     apiKey = {$module.tx_dddeepl.settings.apiKey}
+    useFreeMode = {$module.tx_dddeepl.settings.useFreeMode}
     apiKey {
       override.data = getenv:TYPO3_DEEPL_API_KEY
     }

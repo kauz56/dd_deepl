@@ -1,3 +1,4 @@
 module.tx_dddeepl.settings.apiKey =
+module.tx_dddeepl.settings.useFreeMode =
 
 module.tx_dddeepl.settings.maximumNumberOfGlossariesPerLanguage = 2

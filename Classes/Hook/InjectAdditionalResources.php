@@ -31,6 +31,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\ApplicationType;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Configuration\BackendConfigurationManager;
 
 /**
  * This class contains a hook to the PageRenderer that injects our own JS & CSS in the Backend.
@@ -50,6 +51,11 @@ class InjectAdditionalResources
         $request = $GLOBALS['TYPO3_REQUEST'];
         /** @var ServerRequestInterface $request */
         if (ApplicationType::fromRequest($request)->isBackend()) {
+            $configurationManager = GeneralUtility::makeInstance(BackendConfigurationManager::class);
+            $ts = $configurationManager->getTypoScriptSetup();
+            $ts = $ts['module.']['tx_dddeepl.'] ?? [];
+            $settings = $ts['settings.'] ?? [];
+            $pageRenderer->addInlineSetting('tx_dddeepl', 'settings', $settings);
             $pageTSConfig = BackendUtility::getPagesTSconfig($this->getPageId());
             $module = $request->getAttribute('module');
             /** @var \TYPO3\CMS\Backend\Module\Module $module */
