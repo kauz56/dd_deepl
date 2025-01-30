@@ -74,7 +74,6 @@ class DataHandlerTranslationHook
     public function processDatamap_postProcessFieldArray(string $status, string $tableName, $recordId, array &$fieldArray, DataHandler $dataHandler): void
     {
         if (($fieldArray['pid'] ?? false) && ($this->isDeeplRequest() || $this->isNewPageTranslation($tableName, $recordId, $fieldArray))) {
-
             $languageField = $GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? false;
             if ($languageField) {
                 $service = GeneralUtility::makeInstance(DeeplTranslationService::class);
