@@ -25,34 +25,35 @@ namespace Dmitryd\DdDeepl\Controller;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-use DeepL\DeepLException;
 use DeepL\GlossaryInfo;
-use Dmitryd\DdDeepl\Configuration\Configuration;
-use Dmitryd\DdDeepl\Service\DeeplTranslationService;
-use Psr\Http\Message\ResponseInterface;
-use TYPO3\CMS\Backend\Template\Components\ButtonBar;
-use TYPO3\CMS\Backend\Template\ModuleTemplate;
-use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use DeepL\DeepLException;
 use TYPO3\CMS\Core\Http\Response;
-use TYPO3\CMS\Core\Imaging\Icon;
-use TYPO3\CMS\Core\Imaging\IconFactory;
-use TYPO3\CMS\Core\Messaging\AbstractMessage;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use Dmitryd\DdDeepl\Configuration\Configuration;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use Dmitryd\DdDeepl\Service\DeeplTranslationService;
+use TYPO3\CMS\Backend\Template\Components\ButtonBar;
+use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Backend\Attribute\AsController;
 
 /**
  * This class provides a backend module for DeepL extension.
  *
  * @author Dmitry Dulepov <dmitry.dulepov@gmail.com>
  */
+
+#[AsController]
 class BackendModuleController extends ActionController
 {
     protected ModuleTemplate $moduleTemplate;
@@ -64,9 +65,10 @@ class BackendModuleController extends ActionController
     /**
      * Creates the instance of the class.
      */
-    public function __construct()
-    {
-        $this->pageUid = (int)($GLOBALS['TYPO3_REQUEST']->getQueryParams()['id'] ?? 0);
+    public function __construct(
+        protected readonly ModuleTemplateFactory $moduleTemplateFactory,
+    ) {
+        $this->pageUid = (int) ($GLOBALS['TYPO3_REQUEST']->getQueryParams()['id'] ?? 0);
         $this->pageInformation = BackendUtility::readPageAccess($this->pageUid, '');
     }
 
@@ -87,8 +89,8 @@ class BackendModuleController extends ActionController
             $flashMessage = GeneralUtility::makeInstance(
                 FlashMessage::class,
                 '',
-                LocalizationUtility::translate('module.error', 'dd_deepl', [$exception->getCode(), $exception->getMessage()]),
-                AbstractMessage::ERROR,
+                LocalizationUtility::translate('module.error', 'DdDeepl', [$exception->getCode(), $exception->getMessage()]),
+                ContextualFeedbackSeverity::ERROR,
                 true
             );
             $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
@@ -136,8 +138,8 @@ class BackendModuleController extends ActionController
         $flashMessage = GeneralUtility::makeInstance(
             FlashMessage::class,
             '',
-            LocalizationUtility::translate('module.glossary.delete.done', 'dd_deepl', [$info->name, $glossaryId]),
-            AbstractMessage::OK,
+            LocalizationUtility::translate('module.glossary.delete.done', 'DdDeepl', [$info->name, $glossaryId]),
+            ContextualFeedbackSeverity::OK,
             true
         );
         $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
@@ -191,7 +193,7 @@ class BackendModuleController extends ActionController
             'glossaries' => $service->listGlossaries(),
             'id' => $this->pageUid,
         ]);
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('BackendModule/Glossary');
     }
 
     /**
@@ -201,7 +203,7 @@ class BackendModuleController extends ActionController
      */
     public function noPageIdAction(): ResponseInterface
     {
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('BackendModule/NoPageId');
     }
 
     /**
@@ -228,7 +230,7 @@ class BackendModuleController extends ActionController
                 'glossaryCount' => count($service->listGlossaries()),
             ]);
         }
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('BackendModule/Overview');
     }
 
     /**
@@ -241,7 +243,7 @@ class BackendModuleController extends ActionController
         try {
             $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($this->pageUid);
         } catch (SiteNotFoundException) {
-            $this->redirect('noPageId');
+            return $this->redirect('noPageId');
         }
         $languages = [];
         foreach ($site->getAllLanguages() as $siteLanguage) {
@@ -255,7 +257,7 @@ class BackendModuleController extends ActionController
             'sourceLanguage' => $sourceLanguage,
             'targetLanguage' => $targetLanguage,
         ]);
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('BackendModule/UploadForm');
     }
 
     /**
@@ -292,7 +294,7 @@ class BackendModuleController extends ActionController
         // Keep this check last because it is expensive
         elseif ($this->isLimitReachedForLanguages($sourceLanguage, $targetLanguage)) {
             $message = 'limit_reached';
-            $arguments[] = (int)$this->settings['maximumNumberOfGlossariesPerLanguage'];
+            $arguments[] = (int) $this->settings['maximumNumberOfGlossariesPerLanguage'];
         } else {
             $fileName = GeneralUtility::tempnam('glossary-', '.csv');
             move_uploaded_file($_FILES['file']['tmp_name'], $fileName);
@@ -314,7 +316,7 @@ class BackendModuleController extends ActionController
         $flashMessage = GeneralUtility::makeInstance(
             FlashMessage::class,
             '',
-            LocalizationUtility::translate('module.upload.message.' . $message, 'dd_deepl', $arguments),
+            LocalizationUtility::translate('module.upload.message.' . $message, 'DdDeepl', $arguments),
             $severity,
             true
         );
@@ -363,8 +365,8 @@ class BackendModuleController extends ActionController
             $flashMessage = GeneralUtility::makeInstance(
                 FlashMessage::class,
                 '',
-                LocalizationUtility::translate('module.error', 'dd_deepl', [$exception->getCode(), $exception->getMessage()]),
-                AbstractMessage::ERROR,
+                LocalizationUtility::translate('module.error', 'DdDeepl', [$exception->getCode(), $exception->getMessage()]),
+                ContextualFeedbackSeverity::ERROR,
                 true
             );
             $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
@@ -373,7 +375,7 @@ class BackendModuleController extends ActionController
 
             return $this->redirect('glossary');
         }
-        return $this->moduleTemplate->renderResponse();
+        return $this->moduleTemplate->renderResponse('BackendModule/ViewGlossary');
     }
 
     /**
@@ -424,7 +426,14 @@ class BackendModuleController extends ActionController
         }
 
         foreach ($buttons as $configuration) {
-            $title = LocalizationUtility::translate($configuration['label'], 'dd_deepl');
+            $version = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Information\Typo3Version::class);
+            $size = \TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL;
+
+            if ($version->getMajorVersion() >= 13) {
+                $size = \TYPO3\CMS\Core\Imaging\IconSize::SMALL;
+            }
+
+            $title = LocalizationUtility::translate($configuration['label'], 'DdDeepl');
             $button = $buttonBar->makeLinkButton()
                 ->setHref($uriBuilder->reset()->setRequest($this->request)->uriFor(
                     $configuration['action'],
@@ -435,7 +444,7 @@ class BackendModuleController extends ActionController
                     'placement' => 'bottom',
                     'title' => $title])
                 ->setTitle($title)
-                ->setIcon($iconFactory->getIcon($configuration['icon'], Icon::SIZE_SMALL));
+                ->setIcon($iconFactory->getIcon($configuration['icon'], $size));
             $buttonBar->addButton($button, ButtonBar::BUTTON_POSITION_LEFT, 1);
         }
 
@@ -469,14 +478,14 @@ class BackendModuleController extends ActionController
         if ($this->pageUid > 0 && $service->isAvailable()) {
             // Show menu only if we have a page id
             $menu = $docHeaderComponent->getMenuRegistry()->makeMenu();
-            $menu->setIdentifier('dd_deepl');
+            $menu->setIdentifier('DdDeepl');
             $actions = [
                 ['action' => 'overview', 'label' => 'overview', 'test' => '/^overview$/'],
                 ['action' => 'glossary', 'label' => 'glossary', 'test' => '/glossary|upload/i'],
             ];
             foreach ($actions as $action) {
                 $item = $menu->makeMenuItem()
-                    ->setTitle(LocalizationUtility::translate('module.' . $action['label'], 'dd_deepl'))
+                    ->setTitle(LocalizationUtility::translate('module.' . $action['label'], 'DdDeepl'))
                     ->setHref($uriBuilder->uriFor($action['action']))
                     ->setActive(preg_match($action['test'], $this->request->getControllerActionName()))
                 ;
@@ -487,9 +496,9 @@ class BackendModuleController extends ActionController
     }
 
     /** @inheritDoc */
-    protected function initializeAction()
+    protected function initializeAction(): void
     {
-        $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplateFactory::class)->create($this->request);
+        $this->moduleTemplate = $this->moduleTemplateFactory->create($this->request);
         $this->createMenu();
         $this->createButtons();
 
@@ -525,7 +534,7 @@ class BackendModuleController extends ActionController
     }
 
     /** @inheritDoc */
-    protected function resolveActionMethodName()
+    protected function resolveActionMethodName(): string
     {
         return $this->pageUid === 0 ? 'noPageIdAction' : parent::resolveActionMethodName();
     }

@@ -17,3 +17,12 @@ services:
 
   Dmitryd\DdDeepl\Hook\DataHandlerTranslationHook:
     public: true
+
+  Dmitryd\DdDeepl\Hook\InjectAdditionalResources:
+    public: true
+
+  Dmitryd\DdDeepl\Configuration\Configuration:
+    public: true
+
+  Dmitryd\DdDeepl\Controller\BackendModuleController:
+    public: true

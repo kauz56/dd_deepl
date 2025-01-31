@@ -25,38 +25,38 @@ namespace Dmitryd\DdDeepl\Service;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use DeepL\Usage;
+use DeepL\Language;
+use DeepL\Translator;
+use DeepL\GlossaryInfo;
+use DeepL\LanguageCode;
 use DeepL\DeepLException;
 use DeepL\GlossaryEntries;
-use DeepL\GlossaryInfo;
-use DeepL\GlossaryLanguagePair;
-use DeepL\Language;
-use DeepL\LanguageCode;
-use DeepL\TranslateTextOptions;
-use DeepL\Translator;
 use DeepL\TranslatorOptions;
-use DeepL\Usage;
+use DeepL\GlossaryLanguagePair;
+use DeepL\TranslateTextOptions;
+use Psr\Log\LoggerAwareTrait;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Localization\Locale;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\DataHandling\SlugHelper;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use Dmitryd\DdDeepl\Configuration\Configuration;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\EventDispatcher\EventDispatcher;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use Dmitryd\DdDeepl\Event\AfterFieldTranslatedEvent;
+use Dmitryd\DdDeepl\Event\PreprocessFieldValueEvent;
 use Dmitryd\DdDeepl\Event\AfterRecordTranslatedEvent;
 use Dmitryd\DdDeepl\Event\BeforeFieldTranslationEvent;
 use Dmitryd\DdDeepl\Event\BeforeRecordTranslationEvent;
-use Dmitryd\DdDeepl\Event\CanFieldBeTranslatedCheckEvent;
-use Dmitryd\DdDeepl\Event\PreprocessFieldValueEvent;
-use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
-use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\DataHandling\SlugHelper;
-use TYPO3\CMS\Core\EventDispatcher\EventDispatcher;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Localization\Locale;
-use TYPO3\CMS\Core\Log\LogManager;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Messaging\FlashMessageService;
-use TYPO3\CMS\Core\SingletonInterface;
-use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
-use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use Dmitryd\DdDeepl\Event\CanFieldBeTranslatedCheckEvent;
 
 /**
  * This class contains a service to translate records and texts in TYPO3.
@@ -549,8 +549,8 @@ class DeeplTranslationService implements SingletonInterface
         } else {
             // Assume the data structure has been given from outside if the data structure identifier is already set.
             $dataStructureArray = $GLOBALS['TCA'][$tableName]['columns'][$fieldName]['config']['ds'];
-            $dataStructureArray = $flexFormTools->removeElementTceFormsRecursive($dataStructureArray);
-            $dataStructureArray = $flexFormTools->migrateFlexFormTcaRecursive($dataStructureArray);
+            $dataStructureArray = $this->removeElementTceFormsRecursive($dataStructureArray);
+            $dataStructureArray = $this->migrateFlexFormTcaRecursive($dataStructureArray);
         }
 
         return $dataStructureArray;
@@ -798,7 +798,7 @@ class DeeplTranslationService implements SingletonInterface
 
         $tools = GeneralUtility::makeInstance(FlexFormTools::class);
         /** @var FlexFormTools $tools */
-        $fieldValue = $tools->flexArray2Xml($fields, true);
+        $fieldValue = $tools->flexArray2Xml($fields);
 
         return $fieldValue;
     }
@@ -837,5 +837,49 @@ class DeeplTranslationService implements SingletonInterface
         }
 
         return $section;
+    }
+
+    // shim missing flexform tool for v13
+    protected function removeElementTceFormsRecursive(array $structure): array
+    {
+        $newStructure = [];
+        foreach ($structure as $key => $value) {
+            if ($key === 'ROOT' && is_array($value) && isset($value['TCEforms'])) {
+                $value = array_merge($value, $value['TCEforms']);
+                unset($value['TCEforms']);
+            }
+            if ($key === 'el' && is_array($value)) {
+                $newSubStructure = [];
+                foreach ($value as $subKey => $subValue) {
+                    if (is_array($subValue) && count($subValue) === 1 && isset($subValue['TCEforms'])) {
+                        $newSubStructure[$subKey] = $subValue['TCEforms'];
+                    } else {
+                        $newSubStructure[$subKey] = $subValue;
+                    }
+                }
+                $value = $newSubStructure;
+            }
+            if (is_array($value)) {
+                $value = $this->removeElementTceFormsRecursive($value);
+            }
+            $newStructure[$key] = $value;
+        }
+        return $newStructure;
+    }
+
+    // shim missing flexform tool for v13
+    protected function migrateFlexFormTcaRecursive(array $structure): array
+    {
+        $newStructure = [];
+
+        foreach ($structure as $key => $value) {
+            if (is_array($value)) {
+                $value = $this->migrateFlexFormTcaRecursive($value);
+            }
+
+            $newStructure[$key] = $value;
+        }
+
+        return $newStructure;
     }
 }
