@@ -442,8 +442,9 @@ class DeeplTranslationService implements SingletonInterface
                 // Not the usual input
                 $result = false;
             }
-            if (isset($tcaConfiguration['config']['softref'])) {
+            if (isset($tcaConfiguration['config']['softref']) && $fieldName !== 'subheader') {
                 // Not the usual input either
+                // See https://github.com/dmitryd/dd_deepl/issues/49 for subheader exception
                 $result = false;
             }
             if (isset($tcaConfiguration['config']['valuePicker'])) {
