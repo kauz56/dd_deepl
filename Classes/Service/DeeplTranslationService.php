@@ -294,6 +294,18 @@ class DeeplTranslationService implements SingletonInterface
                         if ($config['config']['type'] === 'flex') {
                             $ds = $this->getFlexformDataStructure($tableName, $fieldName, $record);
                             if ($ds) {
+                                foreach ($ds['sheets'] as $sheet) {
+                                    if (!isset($sheet['ROOT']['el'])) {
+                                        continue;
+                                    }
+                                    foreach ($sheet['ROOT']['el'] as $flexFieldName => $flexConfig) {
+                                        foreach ($exceptFieldNames as $except) {
+                                            if (str_starts_with($except, 'pi_flexform.') && str_ends_with($except, $flexFieldName)) {
+                                                continue 4;
+                                            }
+                                        }
+                                    }
+                                }
                                 $translatedFields[$fieldName] = $this->translateFlexformField(
                                     $tableName,
                                     $fieldName,
