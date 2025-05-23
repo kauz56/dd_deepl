@@ -28,15 +28,15 @@ namespace Dmitryd\DdDeepl\Controller;
 use DeepL\GlossaryInfo;
 use DeepL\DeepLException;
 use TYPO3\CMS\Core\Http\Response;
-use TYPO3\CMS\Core\Site\SiteFinder;
-use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Site\SiteFinder;
+use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use Dmitryd\DdDeepl\Configuration\Configuration;
-use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
@@ -65,10 +65,9 @@ class BackendModuleController extends ActionController
     /**
      * Creates the instance of the class.
      */
-    public function __construct(
-        protected readonly ModuleTemplateFactory $moduleTemplateFactory,
-    ) {
-        $this->pageUid = (int) ($GLOBALS['TYPO3_REQUEST']->getQueryParams()['id'] ?? 0);
+    public function __construct(protected readonly ModuleTemplateFactory $moduleTemplateFactory)
+    {
+        $this->pageUid = (int)($GLOBALS['TYPO3_REQUEST']->getQueryParams()['id'] ?? 0);
         $this->pageInformation = BackendUtility::readPageAccess($this->pageUid, '');
     }
 
@@ -89,7 +88,7 @@ class BackendModuleController extends ActionController
             $flashMessage = GeneralUtility::makeInstance(
                 FlashMessage::class,
                 '',
-                LocalizationUtility::translate('module.error', 'DdDeepl', [$exception->getCode(), $exception->getMessage()]),
+                LocalizationUtility::translate('module.error', 'dd_deepl', [$exception->getCode(), $exception->getMessage()]),
                 ContextualFeedbackSeverity::ERROR,
                 true
             );
@@ -138,7 +137,7 @@ class BackendModuleController extends ActionController
         $flashMessage = GeneralUtility::makeInstance(
             FlashMessage::class,
             '',
-            LocalizationUtility::translate('module.glossary.delete.done', 'DdDeepl', [$info->name, $glossaryId]),
+            LocalizationUtility::translate('module.glossary.delete.done', 'dd_deepl', [$info->name, $glossaryId]),
             ContextualFeedbackSeverity::OK,
             true
         );
@@ -365,7 +364,7 @@ class BackendModuleController extends ActionController
             $flashMessage = GeneralUtility::makeInstance(
                 FlashMessage::class,
                 '',
-                LocalizationUtility::translate('module.error', 'DdDeepl', [$exception->getCode(), $exception->getMessage()]),
+                LocalizationUtility::translate('module.error', 'dd_deepl', [$exception->getCode(), $exception->getMessage()]),
                 ContextualFeedbackSeverity::ERROR,
                 true
             );

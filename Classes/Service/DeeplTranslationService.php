@@ -67,6 +67,8 @@ class DeeplTranslationService implements SingletonInterface
 {
     use LoggerAwareTrait;
 
+    protected array $availableGlossaries = [];
+
     protected Configuration $configuration;
 
     protected EventDispatcher $eventDispatcher;
@@ -109,6 +111,9 @@ class DeeplTranslationService implements SingletonInterface
                 try {
                     $this->sourceLanguages = $this->translator->getSourceLanguages();
                     $this->targetLanguages = $this->translator->getTargetLanguages();
+                    foreach ($this->listGlossaries() as $info) {
+                        $this->availableGlossaries[] = $info->glossaryId;
+                    }
                 } catch (\Exception $exception) {
                     $this->logger->error(
                         sprintf(
@@ -414,7 +419,16 @@ class DeeplTranslationService implements SingletonInterface
         [$targetLanguageForGlossary] = explode('-', $targetLanguage);
         $glossary = $this->configuration->getGlossaryForLanguagePair($sourceLanguageForGlossary, $targetLanguageForGlossary, $this->translator);
         if ($glossary) {
-            $options[TranslateTextOptions::GLOSSARY] = $glossary;
+            if (in_array($glossary, $this->availableGlossaries)) {
+                $options[TranslateTextOptions::GLOSSARY] = $glossary;
+            } else {
+                $this->logger->notice(
+                    sprintf(
+                        'Glossary with id=%s is configured but does not exist and therefore ignored.',
+                        $glossary
+                    )
+                );
+            }
         }
 
         return empty($text) ? '' : $this->translator->translateText(
@@ -450,7 +464,7 @@ class DeeplTranslationService implements SingletonInterface
             $result = false;
         } elseif ($tcaConfiguration['config']['type'] === 'input') {
             $result = true;
-            if (isset($tcaConfiguration['renderType']) && $tcaConfiguration['renderType'] !== 'default') {
+            if (isset($tcaConfiguration['config']['renderType']) && $tcaConfiguration['config']['renderType'] !== 'default') {
                 // Not the usual input
                 $result = false;
             }
@@ -620,7 +634,16 @@ class DeeplTranslationService implements SingletonInterface
             if (isset($record[$languageFieldName])) {
                 // TODO Workspace support for pid
                 try {
-                    $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($record['pid']);
+                    $pageId = (int)$record['pid'];
+                    if ($pageId === 0 && $tableName  === 'pages') {
+                        if ($record['uid'] ?? false) {
+                            $pageId = $record['uid'];
+                        } else {
+                            $l10nParentField = $GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? '';
+                            $pageId = $record[$l10nParentField] ?? 0;
+                        }
+                    }
+                    $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageId);
                     $result = $site->getLanguageById($record[$languageFieldName]);
                 } catch (SiteNotFoundException $exception) {
                     // Nothing to do, record is outside of sites
