@@ -81,7 +81,7 @@ class InjectAdditionalResources
                         // List module
                         if ($isAvailable && $pageTSConfig['mod.']['web_list.']['localization.']['enableDeepL'] ?? true) {
                             // We could limit to "/module/web/list" but than EXT:news administration module will not get translation button, so we just add to all
-                            $this->pageRenderer->loadJavaScriptModule('TYPO3/CMS/DdDeepl/ListLocalization');
+                            $this->pageRenderer->loadJavaScriptModule('@dmitryd/dd_deepl/ListLocalization.js');
                             $this->pageRenderer->addCssFile('EXT:dd_deepl/Resources/Public/Css/DdDeepl.css');
                             $this->pageRenderer->addInlineLanguageLabelFile('EXT:dd_deepl/Resources/Private/Language/locallang.xlf', 'TYPO3.lang.', 'TYPO3.lang.');
                         }
