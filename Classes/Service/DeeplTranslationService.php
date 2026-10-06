@@ -396,9 +396,13 @@ class DeeplTranslationService implements SingletonInterface
     {
         $options = [
             TranslateTextOptions::PRESERVE_FORMATTING => true,
-            TranslateTextOptions::TAG_HANDLING => 'html',
         ];
-        
+        // Plain text must not be translated as HTML, otherwise DeepL returns
+        // special characters as entities, e.g. "&" as "&amp;"
+        if ($this->containsHtml($text)) {
+            $options[TranslateTextOptions::TAG_HANDLING] = 'html';
+        }
+
         // only necessary for autodetect with potential glossary,
         // otherwise passing null below is sufficient
         if ($this->autoDetectSourceLang && $this->configuration->getCountGlossaries($this->translator) > 0) {
@@ -523,6 +527,17 @@ class DeeplTranslationService implements SingletonInterface
         }
 
         return $canTranslate;
+    }
+
+    /**
+     * Checks if the text contains HTML tags or entities.
+     *
+     * @param string $text
+     * @return bool
+     */
+    protected function containsHtml(string $text): bool
+    {
+        return preg_match('/<[a-z!\/][^>]*>|&(?:[a-z][a-z0-9]*|#\d+|#x[0-9a-f]+);/i', $text) === 1;
     }
 
     /**
