@@ -148,6 +148,48 @@ class BackendModuleController extends ActionController
     }
 
     /**
+     * Replaces the glossary: deletes it and opens the upload form prefilled with its name and languages.
+     * The new glossary gets a new id.
+     *
+     * @param string $glossaryId
+     * @throws \DeepL\DeepLException
+     * @throws \TYPO3\CMS\Core\Exception
+     * @return ResponseInterface
+     */
+    public function replaceGlossaryAction(string $glossaryId): ResponseInterface
+    {
+        $service = $this->getDeeplTranslationService();
+        $info = $service->getGlossary($glossaryId);
+        try {
+            $service->deleteGlossary($glossaryId);
+        } catch (DeepLException) {
+            // Ignore
+        }
+
+        $flashMessage = GeneralUtility::makeInstance(
+            FlashMessage::class,
+            '',
+            LocalizationUtility::translate('module.glossary.replace.done', 'DdDeepl', [$info->name, $glossaryId]),
+            ContextualFeedbackSeverity::INFO,
+            true
+        );
+        $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
+        $flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
+
+        return $this->redirect(
+            'uploadForm',
+            null,
+            null,
+            [
+                'name' => $info->name,
+                'sourceLanguage' => $info->sourceLang,
+                'targetLanguage' => $info->targetLang,
+            ],
+            $this->pageUid
+        );
+    }
+
+    /**
      * Manages glossaries.
      *
      * @param string $glossaryId
