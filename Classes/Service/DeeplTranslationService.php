@@ -391,7 +391,8 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
                                     $ds,
                                     $sourceLanguage,
                                     $targetLanguage,
-                                    $record['uid'] ?? null
+                                    $record['uid'] ?? null,
+                                    $exceptFieldNames
                                 );
                             }
                         } else {
@@ -975,11 +976,15 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
      * @param \TYPO3\CMS\Core\Site\Entity\SiteLanguage $sourceLanguage
      * @param \TYPO3\CMS\Core\Site\Entity\SiteLanguage $targetLanguage
      * @param int|string|null $recordUid
+     * @param array $exceptFieldNames Entries like "pi_flexform.someField" skip that flexform field in any sheet
      * @return array
      */
-    protected function translateFlexformSheetFields(string $tableName, string $fieldName, string $sheetName, array $fields, array $ds, SiteLanguage $sourceLanguage, SiteLanguage $targetLanguage, int|string|null $recordUid = null): array
+    protected function translateFlexformSheetFields(string $tableName, string $fieldName, string $sheetName, array $fields, array $ds, SiteLanguage $sourceLanguage, SiteLanguage $targetLanguage, int|string|null $recordUid = null, array $exceptFieldNames = []): array
     {
         foreach ($fields as $name => &$field) {
+            if (in_array($fieldName . '.' . $name, $exceptFieldNames, true)) {
+                continue;
+            }
             if (($config = $ds['sheets'][$sheetName]['ROOT']['el'][$name] ?? false)) {
                 $currentFlexformFieldName = $fieldName . '.' . $sheetName . '.' . $fieldName . '.' . $name;
                 if ($field['vDEF'] ?? false) {
@@ -1014,9 +1019,10 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
      * @param \TYPO3\CMS\Core\Site\Entity\SiteLanguage $sourceLanguage
      * @param \TYPO3\CMS\Core\Site\Entity\SiteLanguage $targetLanguage
      * @param int|string|null $recordUid
+     * @param array $exceptFieldNames Entries like "pi_flexform.someField" skip that flexform field in any sheet
      * @return string
      */
-    protected function translateFlexformField(string $tableName, string $fieldName, string $fieldValue, array $ds, SiteLanguage $sourceLanguage, SiteLanguage $targetLanguage, int|string|null $recordUid = null): string
+    protected function translateFlexformField(string $tableName, string $fieldName, string $fieldValue, array $ds, SiteLanguage $sourceLanguage, SiteLanguage $targetLanguage, int|string|null $recordUid = null, array $exceptFieldNames = []): string
     {
         $fields = GeneralUtility::xml2array($fieldValue);
 
@@ -1029,7 +1035,8 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
                 $ds,
                 $sourceLanguage,
                 $targetLanguage,
-                $recordUid
+                $recordUid,
+                $exceptFieldNames
             );
         }
 
