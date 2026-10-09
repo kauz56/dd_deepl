@@ -47,6 +47,7 @@ use Dmitryd\DdDeepl\Event\PreprocessFieldValueEvent;
 use Dmitryd\DdDeepl\Localization\DeepLLocalizationScope;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
@@ -385,7 +386,11 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
             $slugField = null;
             foreach ($record as $fieldName => $fieldValue) {
                 if (isset($GLOBALS['TCA'][$tableName]['columns'][$fieldName]) && !in_array($fieldName, $exceptFieldNames)) {
-                    $config = $GLOBALS['TCA'][$tableName]['columns'][$fieldName];
+                    $config = $this->getFieldConfigurationForRecordType($tableName, $fieldName, $record);
+                    if ($config === null) {
+                        // The record type does not show this field, so its value is stale
+                        continue;
+                    }
                     if ($this->canFieldBeTranslated($tableName, $fieldName, $fieldValue, $config)) {
                         if ($config['config']['type'] === 'flex') {
                             $ds = $this->getFlexformDataStructure($tableName, $fieldName, $record);
@@ -406,7 +411,7 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
                                 $tableName,
                                 $fieldName,
                                 $fieldValue,
-                                $GLOBALS['TCA'][$tableName]['columns'][$fieldName]['config'],
+                                $config['config'],
                                 $sourceLanguage,
                                 $targetLanguage,
                                 $record['uid'] ?? null
@@ -651,6 +656,54 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
         $result = $event->getCanBeTranslated();
 
         return (bool)$result;
+    }
+
+    /**
+     * Fetches the TCA of the field as the type of the record sees it, with
+     * "types.<type>.columnsOverrides" applied. Returns null if the record type
+     * does not show the field at all, for example a generic column that other
+     * types reuse and that still holds data from an earlier type.
+     *
+     * @param string $tableName
+     * @param string $fieldName
+     * @param array $record
+     * @return array|null
+     */
+    protected function getFieldConfigurationForRecordType(string $tableName, string $fieldName, array $record): ?array
+    {
+        $configuration = $GLOBALS['TCA'][$tableName]['columns'][$fieldName];
+        $recordType = $this->getRecordType($tableName, $record);
+        if ($recordType === null) {
+            return $configuration;
+        }
+
+        $schema = $this->tcaSchemaFactory->get($tableName);
+        if ($schema->hasSubSchema($recordType) && !$schema->getSubSchema($recordType)->hasField($fieldName)) {
+            return null;
+        }
+
+        $overrides = $GLOBALS['TCA'][$tableName]['types'][$recordType]['columnsOverrides'][$fieldName] ?? null;
+
+        return is_array($overrides) ? array_replace_recursive($configuration, $overrides) : $configuration;
+    }
+
+    /**
+     * Fetches the type of the record if the table has types and the record
+     * carries its type field.
+     *
+     * @param string $tableName
+     * @param array $record
+     * @return string|null
+     */
+    protected function getRecordType(string $tableName, array $record): ?string
+    {
+        $typeField = (string)($GLOBALS['TCA'][$tableName]['ctrl']['type'] ?? '');
+        if ($typeField === '' || str_contains($typeField, ':') || !array_key_exists($typeField, $record)) {
+            return null;
+        }
+        $recordType = (string)BackendUtility::getTCAtypeValue($tableName, $record);
+
+        return isset($GLOBALS['TCA'][$tableName]['types'][$recordType]) ? $recordType : null;
     }
 
     /**
