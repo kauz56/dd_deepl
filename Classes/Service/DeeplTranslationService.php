@@ -999,6 +999,17 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
     }
 
     /**
+     * Checks if the field holds HTML from the rich text editor.
+     *
+     * @param array $tcaConfig
+     * @return bool
+     */
+    protected function isRichtext(array $tcaConfig): bool
+    {
+        return ($tcaConfig['type'] ?? '') === 'text' && !empty($tcaConfig['enableRichtext']);
+    }
+
+    /**
      * Preprocesses the field depending on its value.
      *
      * @param string $tableName
@@ -1050,6 +1061,10 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
                 $sourceLanguageCode,
                 $targetLanguageCode
             );
+            if (!$this->isRichtext($tcaConfig)) {
+                // DeepL runs with HTML tag handling and escapes apostrophes and ampersands
+                $fieldValue = html_entity_decode($fieldValue, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
         } catch (DeepLException $exception) {
             $logMessage = sprintf(
                 'Unable to translate field "%s" from "%s" to "%s" using DeepL. Original value is kept. Error: %s',
