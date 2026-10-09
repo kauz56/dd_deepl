@@ -120,6 +120,29 @@ Here is the output of the shell command's help screen:
       -t, --target-language[=TARGET-LANGUAGE]  Target language
 
 
+Record types and columnsOverrides
+=================================
+
+DeepL decides per record type which fields it translates. For a table with
+types (for example :sql:`tt_content` with its :sql:`CType`), a field is
+translated with its configuration from
+:php:`$GLOBALS['TCA'][$table]['types'][$type]['columnsOverrides']` merged in,
+the same way FormEngine shows it. A column that is plain text in its base
+configuration but a select, link or number in one content element is therefore
+not sent to DeepL for that element.
+
+Fields that the record type does not show in its :php:`showitem` (or palettes)
+are skipped. Their values are leftovers from another type and must not be
+translated.
+
+You can also switch off DeepL for a field of one type only:
+
+..  code-block:: php
+
+    // The map element stores coordinates in the subheader field
+    $GLOBALS['TCA']['tt_content']['types']['my_map']['columnsOverrides']['subheader']['translateWithDeepl'] = false;
+
+
 Backend module
 ==============
 
