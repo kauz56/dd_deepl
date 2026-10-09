@@ -1193,6 +1193,10 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
             foreach ($structure[$sectionField]['el'] as $name => &$field) {
                 $fullFieldName = $currentFlexformFieldName . '.' . $k . '.' . $name;
                 $fieldTcaConfig = &$config['el'][$sectionField]['el'][$name];
+                if (!is_array($fieldTcaConfig)) {
+                    // Stale value of a field that was removed from the data structure
+                    continue;
+                }
                 if ($this->canFieldBeTranslated($tableName, $fullFieldName, $field['vDEF'], $fieldTcaConfig)) {
                     $field['vDEF'] = $this->translateFieldInternal(
                         $tableName,
