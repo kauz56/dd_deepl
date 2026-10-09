@@ -88,6 +88,12 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
 
     protected ?Site $site = null;
 
+    /**
+     * Set by canTranslate() when the source language is not supported by DeepL.
+     * In that case DeepL language autodetection is used instead of failing.
+     */
+    protected bool $autoDetectSourceLanguage = false;
+
     /** @var \DeepL\Language[] */
     protected array $sourceLanguages = [];
 
@@ -478,42 +484,107 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
      */
     public function translateText(string $text, string $sourceLanguage, string $targetLanguage): string
     {
+        if (empty($text)) {
+            return '';
+        }
+
         $options = [
             TranslateTextOptions::PRESERVE_FORMATTING => true,
             TranslateTextOptions::TAG_HANDLING => 'html',
         ];
-        [$sourceLanguageForGlossary] = explode('-', $sourceLanguage);
-        [$targetLanguageForGlossary] = explode('-', $targetLanguage);
-        $configuration = $this->getConfiguration();
-        $glossary = $configuration->getGlossaryForLanguagePair($sourceLanguageForGlossary, $targetLanguageForGlossary);
-        if ($glossary) {
-            static $availableGlossaries = [];
 
-            $cacheIdentifier = $configuration->getCacheIdentifier();
-            if (!isset($availableGlossaries[$cacheIdentifier])) {
-                $availableGlossaries[$cacheIdentifier] = [];
-                foreach ($this->listGlossaries() as $info) {
-                    $availableGlossaries[$cacheIdentifier][] = $info->glossaryId;
-                }
+        if ($this->autoDetectSourceLanguage) {
+            // Source language is not supported by DeepL: let DeepL detect it. Glossaries can only be
+            // applied once the source language is known, so translate first and redo with glossary if any.
+            $result = $this->getTranslator()->translateText($text, null, $targetLanguage, $options);
+            $glossary = $this->resolveGlossary((string)$result->detectedSourceLang, $targetLanguage);
+            if ($glossary === null) {
+                return (string)$result;
             }
-            if (in_array($glossary, $availableGlossaries[$cacheIdentifier])) {
-                $options[TranslateTextOptions::GLOSSARY] = $glossary;
-            } else {
-                $this->logger?->notice(
-                    sprintf(
-                        'Glossary with id=%s is configured but does not exist and therefore ignored.',
-                        $glossary
-                    )
-                );
-            }
+            $options[TranslateTextOptions::GLOSSARY] = $glossary;
+
+            return (string)$this->getTranslator()->translateText($text, $result->detectedSourceLang, $targetLanguage, $options);
         }
 
-        return empty($text) ? '' : $this->getTranslator()->translateText(
+        $glossary = $this->resolveGlossary($sourceLanguage, $targetLanguage);
+        if ($glossary !== null) {
+            $options[TranslateTextOptions::GLOSSARY] = $glossary;
+        }
+
+        return (string)$this->getTranslator()->translateText(
             $text,
             $sourceLanguage,
             $targetLanguage,
             $options
         );
+    }
+
+    /**
+     * Resolves the glossary id to use for a language pair.
+     *
+     * A configured glossary is used if it exists at DeepL. If no glossary is configured for the pair,
+     * the first glossary at DeepL matching the pair is used.
+     *
+     * @param string $sourceLanguage
+     * @param string $targetLanguage
+     * @return string|null
+     */
+    protected function resolveGlossary(string $sourceLanguage, string $targetLanguage): ?string
+    {
+        [$sourceLanguageForGlossary] = explode('-', $sourceLanguage);
+        [$targetLanguageForGlossary] = explode('-', $targetLanguage);
+        if ($sourceLanguageForGlossary === '' || $targetLanguageForGlossary === '') {
+            return null;
+        }
+
+        $configuration = $this->getConfiguration();
+        $availableGlossaries = $this->getAvailableGlossaries();
+
+        $glossary = $configuration->getGlossaryForLanguagePair($sourceLanguageForGlossary, $targetLanguageForGlossary);
+        if ($glossary) {
+            if (isset($availableGlossaries[$glossary])) {
+                return $glossary;
+            }
+            $this->logger?->notice(
+                sprintf(
+                    'Glossary with id=%s is configured but does not exist and therefore ignored.',
+                    $glossary
+                )
+            );
+        }
+
+        foreach ($availableGlossaries as $info) {
+            if (strcasecmp($info->sourceLang, $sourceLanguageForGlossary) === 0 && strcasecmp($info->targetLang, $targetLanguageForGlossary) === 0) {
+                return $info->glossaryId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Fetches glossaries existing at DeepL for the current configuration, keyed by glossary id.
+     * Cached for the duration of the request.
+     *
+     * @return array<string, \DeepL\GlossaryInfo>
+     */
+    protected function getAvailableGlossaries(): array
+    {
+        static $availableGlossaries = [];
+
+        $cacheIdentifier = $this->getConfiguration()->getCacheIdentifier();
+        if (!isset($availableGlossaries[$cacheIdentifier])) {
+            $availableGlossaries[$cacheIdentifier] = [];
+            try {
+                foreach ($this->listGlossaries() as $info) {
+                    $availableGlossaries[$cacheIdentifier][$info->glossaryId] = $info;
+                }
+            } catch (DeepLException $exception) {
+                $this->logger?->warning(sprintf('Unable to fetch glossaries from DeepL: %s', $exception->getMessage()));
+            }
+        }
+
+        return $availableGlossaries[$cacheIdentifier];
     }
 
     /**
@@ -592,6 +663,7 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
     protected function canTranslate(?SiteLanguage $sourceLanguage, SiteLanguage $targetLanguage): bool
     {
         $canTranslate = true;
+        $this->autoDetectSourceLanguage = false;
 
         if ($sourceLanguage === null) {
             return false;
@@ -605,12 +677,13 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
         if ($canTranslate && !$this->isSupportedLanguage($sourceLanguage, $this->sourceLanguages)) {
             $this->logger?->notice(
                 sprintf(
-                    'Language "%s" cannot be used as a source language because it is not supported',
+                    'Language "%s" is not supported as a source language. Falling back to DeepL language autodetection',
                     $sourceLanguage->getLocale()->getLanguageCode()
                 )
             );
-            $canTranslate = false;
-        } elseif ($canTranslate && !$this->isSupportedLanguage($targetLanguage, $this->targetLanguages)) {
+            $this->autoDetectSourceLanguage = true;
+        }
+        if ($canTranslate && !$this->isSupportedLanguage($targetLanguage, $this->targetLanguages)) {
             $this->logger?->notice(
                 sprintf(
                     'Language "%s" cannot be used as a target language because it is not supported',
