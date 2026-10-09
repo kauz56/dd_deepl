@@ -49,6 +49,8 @@ class SiteBasedConfiguration implements DeeplConfigurationInterface, LoggerAware
 
     protected int $timeout = 30;
 
+    protected bool $allowFreeMode = false;
+
     protected string $cacheIdentifier = 'site-configuration-none';
 
     protected bool $apiKeyContainsUnresolvedEnvPlaceholder = false;
@@ -67,6 +69,7 @@ class SiteBasedConfiguration implements DeeplConfigurationInterface, LoggerAware
                 $this->maximumNumberOfGlossaries = (int)($configuration['maximumNumberOfGlossariesPerLanguage'] ?? 2);
                 $this->glossaries = is_array($configuration['glossaries'] ?? null) ? $configuration['glossaries'] : [];
                 $this->timeout = min(60, max((int)($configuration['timeout'] ?? 30), 3));
+                $this->allowFreeMode = (bool)($configuration['allowFreeMode'] ?? false);
             }
         }
     }
@@ -148,6 +151,12 @@ class SiteBasedConfiguration implements DeeplConfigurationInterface, LoggerAware
      *
      * @return bool
      */
+    #[\Override]
+    public function isFreeModeAllowed(): bool
+    {
+        return $this->allowFreeMode;
+    }
+
     #[\Override]
     public function isConfigured(): bool
     {

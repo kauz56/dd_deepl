@@ -77,6 +77,14 @@ interface DeeplConfigurationInterface
     public function getTimeout(): int;
 
     /**
+     * Checks if DeepL translation may also be offered for "free mode" localizations
+     * (copy to language), i.e. records not connected to the default language record.
+     *
+     * @return bool
+     */
+    public function isFreeModeAllowed(): bool;
+
+    /**
      * Checks if DeepL is configured in TYPO3.
      *
      * @return bool

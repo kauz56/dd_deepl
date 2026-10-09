@@ -43,3 +43,16 @@ Constants
     Example::
 
        module.tx_dddeepl.settings.timeout = 5
+
+..  confval:: allowFreeMode
+    :name: typoscript-constant-allow-free-mode
+
+    :type: boolean
+    :Default: 0
+
+    Also offer DeepL in the localization wizard for "Copy" (free mode)
+    localizations.
+
+    Example::
+
+       module.tx_dddeepl.settings.allowFreeMode = 1

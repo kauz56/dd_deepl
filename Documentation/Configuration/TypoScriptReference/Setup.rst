@@ -58,6 +58,15 @@ Setup
 
     How long to wait for network requests to DeepL servers
 
+..  confval:: allowFreeMode
+    :name: typoscript-setup-allow-free-mode
+
+    :type: boolean
+    :Default: :typoscript:`{$module.tx_dddeepl.settings.allowFreeMode}`
+
+    Also offer DeepL in the localization wizard for "Copy" (free mode)
+    localizations, not only for "Translate" (connected mode).
+
     Example::
 
        module.tx_dddeepl.settings.timeout = 5

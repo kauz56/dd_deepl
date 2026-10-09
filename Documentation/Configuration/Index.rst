@@ -16,6 +16,7 @@ Configure the extension in the site configuration:
       maximumNumberOfGlossariesPerLanguage: 2
       glossaries:
         de-en: '1a7170f3-edab-4c66-949a-4db3dc6a233f'
+      allowFreeMode: false
 
 If the :yaml:`ddDeepl` key is missing, DeepL is disabled for that site.
 
@@ -64,7 +65,18 @@ Site configuration reference
         :default: empty
 
         Maps a language pair to a glossary id. The key format is
-        :yaml:`source-target`, for example :yaml:`de-en`.
+        :yaml:`source-target`, for example :yaml:`de-en`. If no glossary is
+        configured for a pair, the first glossary existing at DeepL for that
+        pair is used automatically.
+
+    ..  confval:: ddDeepl.allowFreeMode
+        :type: boolean
+        :default: false
+
+        By default DeepL is only offered in the localization wizard for
+        "Translate" (connected mode). If enabled, DeepL is also offered for
+        "Copy" (free mode), creating records that are not connected to the
+        default language record but still translated with DeepL.
 
 ..  toctree::
     :maxdepth: 5

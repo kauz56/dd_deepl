@@ -14,5 +14,8 @@ module.tx_dddeepl {
     maximumNumberOfGlossariesPerLanguage = {$module.tx_dddeepl.settings.maximumNumberOfGlossariesPerLanguage}
 
     timeout = {$module.tx_dddeepl.settings.timeout}
+
+    # Also offer DeepL for "free mode" (copy to language) localizations
+    allowFreeMode = {$module.tx_dddeepl.settings.allowFreeMode}
   }
 }

@@ -108,13 +108,18 @@ class DeepLLocalizationHandler implements LocalizationHandlerInterface
     {
         $isAvailable = false;
         $pageId = $this->getPageId($instructions);
-        if ($instructions->mode === LocalizationMode::TRANSLATE && $pageId > 0) {
+        if ($pageId > 0) {
             $pageTsConfig = BackendUtility::getPagesTSconfig($pageId);
             if ((bool)($pageTsConfig['mod.']['web_layout.']['localization.']['enableDeepL'] ?? true)) {
                 try {
                     $site = $this->siteFinder->getSiteByPageId($pageId);
                     $this->deeplTranslationService->setSite($site);
                     $isAvailable = $this->deeplTranslationService->isAvailable();
+                    if ($isAvailable && $instructions->mode !== LocalizationMode::TRANSLATE) {
+                        // "Free mode" (copy to language) is only offered if allowed by configuration
+                        $isAvailable = $instructions->mode === LocalizationMode::COPY
+                            && $this->deeplTranslationService->getConfiguration()->isFreeModeAllowed();
+                    }
                 } catch (SiteNotFoundException) {
                     $isAvailable = false;
                 }

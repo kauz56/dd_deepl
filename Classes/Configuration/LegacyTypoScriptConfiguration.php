@@ -49,6 +49,8 @@ class LegacyTypoScriptConfiguration implements DeeplConfigurationInterface
 
     protected int $timeout = 30;
 
+    protected bool $allowFreeMode = false;
+
     /**
      * Creates the instance of this class.
      */
@@ -75,6 +77,7 @@ class LegacyTypoScriptConfiguration implements DeeplConfigurationInterface
 
         $this->glossaries = $ts['settings.']['glossaries.'] ?? [];
         $this->timeout = min(60, max((int)($ts['settings.']['timeout'] ?? 30), 3));
+        $this->allowFreeMode = (bool)($ts['settings.']['allowFreeMode'] ?? false);
     }
 
     /**
@@ -152,6 +155,12 @@ class LegacyTypoScriptConfiguration implements DeeplConfigurationInterface
      *
      * @return bool
      */
+    #[\Override]
+    public function isFreeModeAllowed(): bool
+    {
+        return $this->allowFreeMode;
+    }
+
     #[\Override]
     public function isConfigured(): bool
     {

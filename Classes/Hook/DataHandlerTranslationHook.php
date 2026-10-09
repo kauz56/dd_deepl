@@ -91,9 +91,15 @@ class DataHandlerTranslationHook implements LoggerAwareInterface
                     $service->setSite($site);
                     if ($service->isAvailable()) {
                         $targetLanguage = $site->getLanguageById($fieldArray[$languageField]);
-                        $translationSourceField = $GLOBALS['TCA'][$tableName]['ctrl']['transOrigPointerField'];
-                        $sourceRecord = BackendUtility::getRecord($tableName, $fieldArray[$translationSourceField]);
-                        // TODO: investigate when/why this happens - possibly free mode?
+                        // Prefer the record the translation was made from (l10n_source). It is also set for
+                        // "free mode" (copyToLanguage) records, where transOrigPointerField (l10n_parent) is 0.
+                        $translationSourceField = $GLOBALS['TCA'][$tableName]['ctrl']['translationSource'] ?? '';
+                        $sourceRecordUid = (int)($fieldArray[$translationSourceField] ?? 0);
+                        if ($sourceRecordUid === 0) {
+                            $translationSourceField = $GLOBALS['TCA'][$tableName]['ctrl']['transOrigPointerField'];
+                            $sourceRecordUid = (int)($fieldArray[$translationSourceField] ?? 0);
+                        }
+                        $sourceRecord = $sourceRecordUid > 0 ? BackendUtility::getRecord($tableName, $sourceRecordUid) : null;
                         if ($sourceRecord) {
                             $errorCount = $this->deepLLocalizationScope->getTranslationFailureCount();
                             $translatedFieldArray = $service->translateRecord($tableName, $sourceRecord, $targetLanguage);
