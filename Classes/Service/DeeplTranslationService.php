@@ -544,8 +544,9 @@ class DeeplTranslationService implements SingletonInterface, LoggerAwareInterfac
                 // Not the usual input
                 $result = false;
             }
-            if (isset($tcaConfiguration['config']['softref'])) {
-                // Not the usual input either
+            if (isset($tcaConfiguration['config']['softref']) && !($tableName === 'tt_content' && $fieldName === 'subheader')) {
+                // Not the usual input either. tt_content.subheader has a softref but is plain text,
+                // see https://github.com/dmitryd/dd_deepl/issues/49
                 $result = false;
             }
             if (isset($tcaConfiguration['config']['valuePicker'])) {
